@@ -1,0 +1,11 @@
+services:
+  hirenow:
+    image: ghcr.io/buildprocure/hirenow:latest
+    build:
+      context: .
+    container_name: hirenow
+    restart: unless-stopped
+    ports:
+      - "3100:80"
+    env_file:
+      - .env
