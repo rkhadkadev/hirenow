@@ -65,24 +65,25 @@ jobs:
           envs: IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,CONTACT_EMAIL,MAIL_FROM,MAIL_FROM_NAME,SMTP_HOST,SMTP_PORT,SMTP_SECURE,SMTP_USER,SMTP_PASSWORD
           script: |
             set -e
-            mkdir -p /opt/hirenow
-            cat > /opt/hirenow/.env <<EOF
-            CONTACT_EMAIL=${CONTACT_EMAIL:-info@hirenow.buildprocure.com}
-            MAIL_FROM=${MAIL_FROM:-no-reply@hirenow.buildprocure.com}
-            MAIL_FROM_NAME=${MAIL_FROM_NAME:-HireNow Website}
-            SMTP_HOST=${SMTP_HOST}
-            SMTP_PORT=${SMTP_PORT:-587}
-            SMTP_SECURE=${SMTP_SECURE:-tls}
-            SMTP_USER=${SMTP_USER}
-            SMTP_PASSWORD=${SMTP_PASSWORD}
-            EOF
-            chmod 600 /opt/hirenow/.env
+            sudo mkdir -p /opt/hirenow
+            cat > /tmp/hirenow.env <<EOF
+CONTACT_EMAIL=${CONTACT_EMAIL:-info@hirenow.buildprocure.com}
+MAIL_FROM=${MAIL_FROM:-no-reply@hirenow.buildprocure.com}
+MAIL_FROM_NAME=${MAIL_FROM_NAME:-HireNow Website}
+SMTP_HOST=${SMTP_HOST}
+SMTP_PORT=${SMTP_PORT:-587}
+SMTP_SECURE=${SMTP_SECURE:-tls}
+SMTP_USER=${SMTP_USER}
+SMTP_PASSWORD=${SMTP_PASSWORD}
+EOF
+            sudo install -m 600 /tmp/hirenow.env /opt/hirenow/.env
+            rm -f /tmp/hirenow.env
 
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            docker pull "$IMAGE_NAME:latest"
-            docker stop hirenow || true
-            docker rm hirenow || true
-            docker run -d \
+            echo "$GHCR_TOKEN" | sudo docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            sudo docker pull "$IMAGE_NAME:latest"
+            sudo docker stop hirenow || true
+            sudo docker rm hirenow || true
+            sudo docker run -d \
               --name hirenow \
               --restart unless-stopped \
               -p 3100:80 \
