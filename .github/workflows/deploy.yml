@@ -66,16 +66,16 @@ jobs:
           script: |
             set -e
             sudo mkdir -p /opt/hirenow
-            cat > /tmp/hirenow.env <<EOF
-CONTACT_EMAIL=${CONTACT_EMAIL:-info@hirenow.buildprocure.com}
-MAIL_FROM=${MAIL_FROM:-no-reply@hirenow.buildprocure.com}
-MAIL_FROM_NAME=${MAIL_FROM_NAME:-HireNow Website}
-SMTP_HOST=${SMTP_HOST}
-SMTP_PORT=${SMTP_PORT:-587}
-SMTP_SECURE=${SMTP_SECURE:-tls}
-SMTP_USER=${SMTP_USER}
-SMTP_PASSWORD=${SMTP_PASSWORD}
-EOF
+            {
+              printf 'CONTACT_EMAIL=%s\n' "${CONTACT_EMAIL:-info@hirenow.buildprocure.com}"
+              printf 'MAIL_FROM=%s\n' "${MAIL_FROM:-no-reply@hirenow.buildprocure.com}"
+              printf 'MAIL_FROM_NAME=%s\n' "${MAIL_FROM_NAME:-HireNow Website}"
+              printf 'SMTP_HOST=%s\n' "$SMTP_HOST"
+              printf 'SMTP_PORT=%s\n' "${SMTP_PORT:-587}"
+              printf 'SMTP_SECURE=%s\n' "${SMTP_SECURE:-tls}"
+              printf 'SMTP_USER=%s\n' "$SMTP_USER"
+              printf 'SMTP_PASSWORD=%s\n' "$SMTP_PASSWORD"
+            } > /tmp/hirenow.env
             sudo install -m 600 /tmp/hirenow.env /opt/hirenow/.env
             rm -f /tmp/hirenow.env
 
