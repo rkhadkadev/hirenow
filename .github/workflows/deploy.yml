@@ -65,7 +65,16 @@ jobs:
           envs: IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,CONTACT_EMAIL,MAIL_FROM,MAIL_FROM_NAME,SMTP_HOST,SMTP_PORT,SMTP_SECURE,SMTP_USER,SMTP_PASSWORD
           script: |
             set -e
-            sudo mkdir -p /opt/hirenow
+            if [ "$(id -u)" -eq 0 ]; then
+              SUDO=""
+            elif sudo -n true 2>/dev/null; then
+              SUDO="sudo"
+            else
+              echo "Deploy user must be root or have passwordless sudo."
+              exit 1
+            fi
+
+            $SUDO mkdir -p /opt/hirenow
             {
               printf 'CONTACT_EMAIL=%s\n' "${CONTACT_EMAIL:-info@hirenow.buildprocure.com}"
               printf 'MAIL_FROM=%s\n' "${MAIL_FROM:-no-reply@hirenow.buildprocure.com}"
@@ -76,14 +85,14 @@ jobs:
               printf 'SMTP_USER=%s\n' "$SMTP_USER"
               printf 'SMTP_PASSWORD=%s\n' "$SMTP_PASSWORD"
             } > /tmp/hirenow.env
-            sudo install -m 600 /tmp/hirenow.env /opt/hirenow/.env
+            $SUDO install -m 600 /tmp/hirenow.env /opt/hirenow/.env
             rm -f /tmp/hirenow.env
 
-            echo "$GHCR_TOKEN" | sudo docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-            sudo docker pull "$IMAGE_NAME:latest"
-            sudo docker stop hirenow || true
-            sudo docker rm hirenow || true
-            sudo docker run -d \
+            echo "$GHCR_TOKEN" | $SUDO docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            $SUDO docker pull "$IMAGE_NAME:latest"
+            $SUDO docker stop hirenow || true
+            $SUDO docker rm hirenow || true
+            $SUDO docker run -d \
               --name hirenow \
               --restart unless-stopped \
               -p 3100:80 \
