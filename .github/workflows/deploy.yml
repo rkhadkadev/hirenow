@@ -68,7 +68,7 @@ jobs:
             if [ "$(id -u)" -eq 0 ]; then
               SUDO=""
             elif sudo -n true 2>/dev/null; then
-              SUDO="sudo"
+              SUDO="sudo -n"
             else
               echo "Deploy user must be root or have passwordless sudo."
               exit 1
@@ -101,7 +101,9 @@ jobs:
             $SUDO install -m 600 /tmp/hirenow.env /opt/hirenow/.env
             rm -f /tmp/hirenow.env
 
-            printf '%s' "$GHCR_TOKEN" | $SUDO docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            printf '%s\n' "$GHCR_TOKEN" > /tmp/ghcr_token
+            $SUDO docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin < /tmp/ghcr_token
+            rm -f /tmp/ghcr_token
             $SUDO docker pull "$IMAGE_NAME:latest"
             $SUDO docker stop hirenow || true
             $SUDO docker rm hirenow || true
