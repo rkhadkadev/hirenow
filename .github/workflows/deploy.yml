@@ -48,7 +48,7 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME || github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
@@ -74,6 +74,19 @@ jobs:
               exit 1
             fi
 
+            if [ -z "$GHCR_TOKEN" ]; then
+              echo "GHCR_TOKEN secret is missing or empty."
+              exit 1
+            fi
+
+            if [ -z "$GHCR_USERNAME" ]; then
+              echo "GHCR_USERNAME is missing."
+              exit 1
+            fi
+
+            echo "Logging in to GHCR as: $GHCR_USERNAME"
+            echo "GHCR_TOKEN length: ${#GHCR_TOKEN}"
+
             $SUDO mkdir -p /opt/hirenow
             {
               printf 'CONTACT_EMAIL=%s\n' "${CONTACT_EMAIL:-info@hirenow.buildprocure.com}"
@@ -88,7 +101,7 @@ jobs:
             $SUDO install -m 600 /tmp/hirenow.env /opt/hirenow/.env
             rm -f /tmp/hirenow.env
 
-            echo "$GHCR_TOKEN" | $SUDO docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+            printf '%s' "$GHCR_TOKEN" | $SUDO docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             $SUDO docker pull "$IMAGE_NAME:latest"
             $SUDO docker stop hirenow || true
             $SUDO docker rm hirenow || true
