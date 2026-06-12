@@ -44,6 +44,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload Apache config
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          source: apache/hirenow.buildprocure.com.conf
+          target: /tmp/hirenow-deploy
+          overwrite: true
+
       - name: Deploy to DigitalOcean
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -113,3 +126,15 @@ jobs:
               -p 3100:80 \
               --env-file /opt/hirenow/.env \
               "$IMAGE_NAME:latest"
+
+            if command -v apache2ctl >/dev/null 2>&1 && command -v a2ensite >/dev/null 2>&1; then
+              $SUDO install -m 644 /tmp/hirenow-deploy/apache/hirenow.buildprocure.com.conf /etc/apache2/sites-available/hirenow.buildprocure.com.conf
+              $SUDO a2enmod proxy proxy_http
+              $SUDO a2ensite hirenow.buildprocure.com.conf
+              $SUDO apache2ctl configtest
+              $SUDO systemctl reload apache2
+            else
+              echo "Apache was not found on the host; skipped vhost installation."
+            fi
+
+            rm -rf /tmp/hirenow-deploy
