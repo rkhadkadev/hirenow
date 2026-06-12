@@ -52,13 +52,6 @@ For DigitalOcean deployment, add these repository secrets:
 - `SMTP_USER`: SMTP username
 - `SMTP_PASSWORD`: SMTP password
 
-## Apache Reverse Proxy
+## Reverse Proxy
 
-Copy `apache/hirenow.buildprocure.com.conf` to your host Apache sites directory, enable proxy modules, enable the site, and reload Apache:
-
-```bash
-sudo a2enmod proxy proxy_http
-sudo cp apache/hirenow.buildprocure.com.conf /etc/apache2/sites-available/hirenow.buildprocure.com.conf
-sudo a2ensite hirenow.buildprocure.com.conf
-sudo systemctl reload apache2
-```
+Public traffic for `hirenow.buildprocure.com` is routed by the existing `buildprocure` Apache container. Keep the `hirenow` container on the shared external Docker network `app-network`, then add the `hirenow.buildprocure.com` virtual host to the `buildprocure` Apache configuration.
