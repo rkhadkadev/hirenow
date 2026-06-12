@@ -9,3 +9,9 @@ services:
       - "3100:80"
     env_file:
       - .env
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true

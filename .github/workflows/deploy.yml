@@ -44,18 +44,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Prepare Apache config
-        run: |
-          {
-            echo 'APACHE_CONFIG_B64<<EOF'
-            base64 -w 0 apache/hirenow.buildprocure.com.conf
-            echo
-            echo 'EOF'
-          } >> "$GITHUB_ENV"
-
       - name: Deploy to DigitalOcean
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -70,12 +58,11 @@ jobs:
           SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          APACHE_CONFIG_B64: ${{ env.APACHE_CONFIG_B64 }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
-          envs: IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,CONTACT_EMAIL,MAIL_FROM,MAIL_FROM_NAME,SMTP_HOST,SMTP_PORT,SMTP_SECURE,SMTP_USER,SMTP_PASSWORD,APACHE_CONFIG_B64
+          envs: IMAGE_NAME,GHCR_USERNAME,GHCR_TOKEN,CONTACT_EMAIL,MAIL_FROM,MAIL_FROM_NAME,SMTP_HOST,SMTP_PORT,SMTP_SECURE,SMTP_USER,SMTP_PASSWORD
           script: |
             set -e
             if [ "$(id -u)" -eq 0 ]; then
@@ -123,34 +110,7 @@ jobs:
             $SUDO docker run -d \
               --name hirenow \
               --restart unless-stopped \
+              --network app-network \
               -p 3100:80 \
               --env-file /opt/hirenow/.env \
               "$IMAGE_NAME:latest"
-
-            if command -v apache2ctl >/dev/null 2>&1 && command -v a2ensite >/dev/null 2>&1; then
-              if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled apache2 2>/dev/null | grep -q '^masked$'; then
-                echo "Apache service is masked on this host; skipped vhost installation."
-                rm -f /tmp/hirenow.buildprocure.com.conf
-                exit 0
-              fi
-
-              if [ -z "$APACHE_CONFIG_B64" ]; then
-                echo "Apache config content is missing."
-                exit 1
-              fi
-
-              printf '%s' "$APACHE_CONFIG_B64" | base64 -d > /tmp/hirenow.buildprocure.com.conf
-              $SUDO install -m 644 /tmp/hirenow.buildprocure.com.conf /etc/apache2/sites-available/hirenow.buildprocure.com.conf
-              $SUDO a2enmod proxy proxy_http
-              $SUDO a2ensite hirenow.buildprocure.com.conf
-              $SUDO apache2ctl configtest
-              if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet apache2; then
-                $SUDO systemctl reload apache2
-              else
-                echo "Apache config installed, but apache2 is not active; skipped reload."
-              fi
-            else
-              echo "Apache was not found on the host; skipped vhost installation."
-            fi
-
-            rm -f /tmp/hirenow.buildprocure.com.conf
