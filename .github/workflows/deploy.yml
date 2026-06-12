@@ -113,3 +113,28 @@ jobs:
               -p 3100:80 \
               --env-file /opt/hirenow/.env \
               "$IMAGE_NAME:latest"
+
+            {
+              printf '%s\n' '<VirtualHost *:80>'
+              printf '%s\n' '    ServerName hirenow.buildprocure.com'
+              printf '%s\n' ''
+              printf '%s\n' '    ProxyPreserveHost On'
+              printf '%s\n' '    ProxyPass / http://127.0.0.1:3100/'
+              printf '%s\n' '    ProxyPassReverse / http://127.0.0.1:3100/'
+              printf '%s\n' ''
+              printf '%s\n' '    ErrorLog ${APACHE_LOG_DIR}/hirenow-error.log'
+              printf '%s\n' '    CustomLog ${APACHE_LOG_DIR}/hirenow-access.log combined'
+              printf '%s\n' '</VirtualHost>'
+            } > /tmp/hirenow.buildprocure.com.conf
+
+            if command -v apache2ctl >/dev/null 2>&1 && command -v a2ensite >/dev/null 2>&1; then
+              $SUDO install -m 644 /tmp/hirenow.buildprocure.com.conf /etc/apache2/sites-available/hirenow.buildprocure.com.conf
+              $SUDO a2enmod proxy proxy_http
+              $SUDO a2ensite hirenow.buildprocure.com.conf
+              $SUDO apache2ctl configtest
+              $SUDO systemctl reload apache2
+            else
+              echo "Apache was not found on the host; skipped vhost installation."
+            fi
+
+            rm -f /tmp/hirenow.buildprocure.com.conf
